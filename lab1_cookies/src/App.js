@@ -2,18 +2,25 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 const App = () => {
-  // Состояния для управления данными приложения
-  const [user, setUser] = useState(null); // Данные пользователя из cookie
-  const [userInfo, setUserInfo] = useState(null); // Данные с API
-  const [loading, setLoading] = useState(false); // Состояние загрузки
-  const [error, setError] = useState(null); // Состояние ошибки
+  /* Шо у вас здесь происходит? useState это хук React, позволяет использовать возможности React даже функциональным компонентам.
+    Конкретно useState(initialState) позволяет добавлять состояния переменным, объектам - да вообще чему угодно
+    [] - это деструктуризация массива, {} - объекта
+    useState возвращает массив, но через деструктуризацию в переменную user кладется переменная с обновляемым состоянием, 
+    а в setUser - функция, которая имеет один аргумент и обновляет состояние переменной user.
+  */
+  const [user, setUser] = useState(null); // Данные пользователя
+  const [userInfo, setUserInfo] = useState(null); // Данные с сайта
+  const [loading, setLoading] = useState(false); // флаг загрузки
+  const [error, setError] = useState(null); // флаг ошибки
   const [formData, setFormData] = useState({ name: '', age: '' }); // Данные формы
 
-  // Функции для работы с cookies
+  // Функция для работы с cookies
   const setCookie = (name, value, days = 7) => {
     const expires = new Date();
     expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
     document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+    // просто создали куку в правильном формате и сохранили
+    // кстати document.cookie это не просто свойство, а аксессор
   };
 
   const getCookie = (name) => {
@@ -21,7 +28,8 @@ const App = () => {
     const ca = document.cookie.split(';');
     for(let i = 0; i < ca.length; i++) {
       let c = ca[i];
-      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      //while (c.charAt(0) === ' ') c = c.substring(1, c.length); // а зачем
+      c = c.trim();
       if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
     }
     return null;
@@ -37,7 +45,7 @@ const App = () => {
     setLoading(true);
     setError(null);
     
-    // Создаем Promise для запроса данных
+    // запрашиваем данные
     const fetchPromise = new Promise((resolve, reject) => {
       //fetch('https://randomuser.me/api/')
       fetch('https://randomuser.com/api/')
@@ -83,28 +91,18 @@ const App = () => {
 
   // Обработчик отправки формы регистрации
   const handleRegistration = () => {
-    
     if (!formData.name.trim() || !formData.age.trim()) {
       alert('Пожалуйста, заполните все поля');
       return;
     }
-
     if (isNaN(formData.age) || formData.age < 1 || formData.age > 120) {
       alert('Пожалуйста, введите корректный возраст');
       return;
     }
-
-    // Сохраняем данные в cookies
     setCookie('userName', formData.name);
     setCookie('userAge', formData.age);
-    
-    // Обновляем состояние пользователя
     setUser({ name: formData.name, age: formData.age });
-    
-    // Получаем дополнительные данные с API
     fetchUserData();
-    
-    // Очищаем форму
     setFormData({ name: '', age: '' });
   };
 
