@@ -41,41 +41,67 @@ const App = () => {
   };
 
   // Асинхронное получение данных с сайта
-  const fetchUserData = () => {
-    setLoading(true);
-    setError(null);
-    
-    // запрашиваем данные
-    const fetchPromise = new Promise((resolve, reject) => {
-      //fetch('https://randomuser.me/api/')
-      fetch('https://randomuser.com/api/')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => resolve(data))
-        .catch(error => reject(error));
-    });
+  // const fetchUserData = () => {
+  //   setLoading(true);
+  //   setError(null);
+  //   const fetchPromise = new Promise((resolve, reject) => {
+  //     //fetch('https://randomuser.me/api/')
+  //     fetch('https://randomuser.com/api/')
+  //       .then(response => {
+  //         if (!response.ok) {
+  //           throw new Error(`HTTP error! status: ${response.status}`);
+  //         }
+  //         return response.json();
+  //       })
+  //       .then(data => resolve(data))
+  //       .catch(error => reject(error));
+  //   });
 
-    // Обрабатываем Promise
-    fetchPromise
-      .then(data => {
-        const userData = data.results[0];
-        setUserInfo({
-          email: userData.email,
-          phone: userData.phone,
-          picture: userData.picture.large,
-          location: `${userData.location.city}, ${userData.location.country}`
-        });
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Ошибка при получении данных:', error);
-        setError('Не удалось получить данные с сервера. Проверьте подключение к интернету.');
-        setLoading(false);
-      });
+  //   // Обрабатываем Promise
+  //   fetchPromise
+  //     .then(data => {
+  //       const userData = data.results[0];
+  //       setUserInfo({
+  //         email: userData.email,
+  //         phone: userData.phone,
+  //         picture: userData.picture.large,
+  //         location: `${userData.location.city}, ${userData.location.country}`
+  //       });
+  //       setLoading(false);
+  //     })
+  //     .catch(error => {
+  //       console.error('Ошибка при получении данных:', error);
+  //       setError('Не удалось получить данные с сервера. Проверьте подключение к интернету.');
+  //       setLoading(false);
+  //     });
+  // };
+
+  const fetchUserData = async () =>   {
+  setLoading(true);
+  setError(null);
+  
+  try {
+    const response = await fetch('https://randomuser.me/api/');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    const userData = data.results[0];
+    
+    // 4. Обновление состояния
+    setUserInfo({
+      email: userData.email,
+      phone: userData.phone,
+      picture: userData.picture.large,
+      location: `${userData.location.city}, ${userData.location.country}`
+    });
+    
+  } catch (error) {
+    console.error('Ошибка:', error);
+    setError('Не удалось получить данные. Проверьте подключение к интернету.');
+  } finally {
+    setLoading(false); // Гарантированно снимаем лоадер
+  }
   };
 
   // useEffect для проверки cookie при загрузке компонента
@@ -89,7 +115,7 @@ const App = () => {
     }
   }, []);
 
-  // Обработчик отправки формы регистрации
+  // Кнопка регистрации
   const handleRegistration = () => {
     if (!formData.name.trim() || !formData.age.trim()) {
       alert('Пожалуйста, заполните все поля');
@@ -106,7 +132,7 @@ const App = () => {
     setFormData({ name: '', age: '' });
   };
 
-  // Обработчик изменения полей формы
+  // отслеживание ввода в полях для взаимного обновления как переменных, связанных с полями, так и самих полей
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -115,7 +141,7 @@ const App = () => {
     }));
   };
 
-  // Обработчик выхода
+  // Кнопка выйти
   const handleLogout = () => {
     deleteCookie('userName');
     deleteCookie('userAge');
@@ -123,8 +149,8 @@ const App = () => {
     setUserInfo(null);
     setError(null);
   };
-
-  return (
+  // возвращаем jsx разметку
+  return ( 
     <div className="app-container">
       <div className="content-container">
         <h1 className="lab-title">
