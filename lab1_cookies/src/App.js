@@ -1,25 +1,256 @@
-import logo from './logo.svg';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
-function App() {
+const App = () => {
+  // Состояния для управления данными приложения
+  const [user, setUser] = useState(null); // Данные пользователя из cookie
+  const [userInfo, setUserInfo] = useState(null); // Данные с API
+  const [loading, setLoading] = useState(false); // Состояние загрузки
+  const [error, setError] = useState(null); // Состояние ошибки
+  const [formData, setFormData] = useState({ name: '', age: '' }); // Данные формы
+
+  // Функции для работы с cookies
+  const setCookie = (name, value, days = 7) => {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+  };
+
+  const getCookie = (name) => {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  };
+
+  // Удаляем куки через машину времени
+  const deleteCookie = (name) => {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  };
+
+  // Асинхронное получение данных с сайта
+  const fetchUserData = () => {
+    setLoading(true);
+    setError(null);
+    
+    // Создаем Promise для запроса данных
+    const fetchPromise = new Promise((resolve, reject) => {
+      //fetch('https://randomuser.me/api/')
+      fetch('https://randomuser.com/api/')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => resolve(data))
+        .catch(error => reject(error));
+    });
+
+    // Обрабатываем Promise
+    fetchPromise
+      .then(data => {
+        const userData = data.results[0];
+        setUserInfo({
+          email: userData.email,
+          phone: userData.phone,
+          picture: userData.picture.large,
+          location: `${userData.location.city}, ${userData.location.country}`
+        });
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Ошибка при получении данных:', error);
+        setError('Не удалось получить данные с сервера. Проверьте подключение к интернету.');
+        setLoading(false);
+      });
+  };
+
+  // useEffect для проверки cookie при загрузке компонента
+  useEffect(() => {
+    const savedName = getCookie('userName');
+    const savedAge = getCookie('userAge');
+    
+    if (savedName && savedAge) {
+      setUser({ name: savedName, age: savedAge });
+      fetchUserData();
+    }
+  }, []);
+
+  // Обработчик отправки формы регистрации
+  const handleRegistration = () => {
+    
+    if (!formData.name.trim() || !formData.age.trim()) {
+      alert('Пожалуйста, заполните все поля');
+      return;
+    }
+
+    if (isNaN(formData.age) || formData.age < 1 || formData.age > 120) {
+      alert('Пожалуйста, введите корректный возраст');
+      return;
+    }
+
+    // Сохраняем данные в cookies
+    setCookie('userName', formData.name);
+    setCookie('userAge', formData.age);
+    
+    // Обновляем состояние пользователя
+    setUser({ name: formData.name, age: formData.age });
+    
+    // Получаем дополнительные данные с API
+    fetchUserData();
+    
+    // Очищаем форму
+    setFormData({ name: '', age: '' });
+  };
+
+  // Обработчик изменения полей формы
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Обработчик выхода
+  const handleLogout = () => {
+    deleteCookie('userName');
+    deleteCookie('userAge');
+    setUser(null);
+    setUserInfo(null);
+    setError(null);
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app-container">
+      <div className="content-container">
+        <h1 className="lab-title">
+          Лабораторная работа: Cookies и Promise
+        </h1>
+        
+        {// Проверяем, вдруг уже есть куки
+        !user ? (
+          // Юзера нет, показываем форму регистрации
+          <div className="form-container">
+            <h2 className="form-title">
+              Регистрация пользователя
+            </h2>
+            <div className="form-inputs-container">
+
+              <div className="wide">
+                <label htmlFor="name" className="input-label">
+                  Имя:
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name = "name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="name-input-field"
+                  placeholder="Введите ваше имя"
+                />
+              </div>
+
+              <div className="wide">
+                <label htmlFor="age" className="input-label">
+                  Возраст:
+                </label>
+                <input
+                  type="number"
+                  id="age"
+                  name = "age"
+                  value={formData.age}
+                  onChange={handleInputChange}
+                  min="1"
+                  max="120"
+                  className="name-input-field"
+                  placeholder="Введите ваш возраст"
+                />
+              </div>
+              
+              <button
+                onClick={handleRegistration}
+                className="register-button"
+              >
+                Зарегистрироваться
+              </button>
+            </div>
+          </div>
+        ) : (
+          // Юзер есть, показываем инфу
+          <div className="user-info-container">
+            <div className="user-info-card">
+              <div className="header-container">
+                <h2 className="form-title">
+                  Добро пожаловать, {user.name}!
+                </h2>
+                <button
+                  onClick={handleLogout}
+                  className="logout-button">
+                  Выйти
+                </button>
+              </div>
+              
+              <p className="user-age-text">
+                Ваш возраст: {user.age} лет
+              </p>
+              
+              {loading && (
+                <div className="loading-container">
+                  <span className="loading-text">Загружаем дополнительную информацию...</span>
+                </div>
+              )}
+              
+              {error && (
+                <div className="error-notification">
+                  <strong>Ошибка:</strong> {error}
+                  <button
+                    onClick={fetchUserData}
+                    className="retry-button">
+                    Попробовать снова
+                  </button>
+                </div>
+              )}
+              
+              {userInfo && (
+                <div className="user-details-section">
+                  <h3 className="details-heading">
+                    Дополнительная информация:
+                  </h3>
+                  
+                  <div className="user-data-container">
+                    <img
+                      src={userInfo.picture}
+                      alt="Аватарка"
+                      className="user-avatar"
+                    />
+                    
+                    <div className="user-text-data">
+                      <p className="user-info-line">
+                        <strong>Email:</strong> {userInfo.email}
+                      </p>
+                      <p className="user-info-line">
+                        <strong>Телефон:</strong> {userInfo.phone}
+                      </p>
+                      <p className="user-info-line">
+                        <strong>Локация:</strong> {userInfo.location}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};
 
 export default App;
